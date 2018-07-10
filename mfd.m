@@ -1,52 +1,29 @@
 % idx 441 = 4 km depth
 %for p = 300:481
 
-clear init; clear endd; clear slp;
-    
-j = 1; k = 1; flag = 1; p = 325;
-slip = 0;
-%init = 0; endd = 0;
-    
-    
-for i = 1: length(SLIPVEL(1,:))
-    
-    if SLIPVEL(p, i) >= 1e-3
-        if flag == 1 
-            %slip = slip + SLIPVEL(441, i)*(time(i) - time(i-1));
-            init(j) = i; j = j+ 1;
-            flag = 0;
+clear moment; clear Mw; slip = zeros(181);
+%% Calculate slip on each element with time, and then integrate with depth
+for i = 2:328
+      
+    idx1 = dynamic_it(i);
+    idx2 = qs_it(i+1);
+
+    mo = 0; j = 1;
+    net_area = 0; thres = 0;
+    for depth = 300:481
+        for k = idx1:idx2
+            slip(j) = slip(j) + SLIPVEL(depth, k)*(time(k) - time(k-1));
         end
+        j = j + 1;
     end
     
-    if SLIPVEL(p, i)< 1e-3
-        if flag == 0
-            endd(k) = i; k = k+1;
-            flag = 1;
-        end
-    end
+    thres = max(slip);
+    net_area = sum(slip(slip> 0.01*thres)*dxe^2);
+       
+    Moment(i) = mu(1,1)*net_area;
 end
-init = init';
-endd = endd';
+Moment = Moment';
 
-%plot(time, SLIPVEL(p,:))
-
-
-%sv = SLIPVEL(SLIPVEL > 1e-3)
-
-for i = 2: length(endd)
-    idx1 = init(i);
-    idx2 = endd(i);
-    
-    slip = 0;
-    for j = idx1:idx2
-        slip = slip + SLIPVEL(p, j)*(time(j) - time(j-1));
-    end
-    
-    slp(i) = slip;
-end
-
-%end
-%plot(1:k-1, slp); figure(gcf)
 
 %% Moment calculation 2
 for i = 2:328
@@ -67,7 +44,7 @@ Moment = Moment';
 
 Mw = (2/3)*log10(Moment.*1e7) - 10.7;
 
-[counts, bins] = hist(Mw, 10);
+[counts, bins] = hist(Mw);
 figure()
 scatter(bins, log10(counts), 'filled');
 xlabel('Magnitude');
